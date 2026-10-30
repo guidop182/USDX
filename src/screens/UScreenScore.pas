@@ -221,6 +221,7 @@ implementation
 uses
   UAvatars,
   UGraphic,
+  UKaraokeQueue,
   UHelp,
   ULanguage,
   ULog,
@@ -1296,6 +1297,18 @@ begin
     StartVoice;
   end;
 
+  // karaoke: mandar el puntaje a la cola y volver solo a la seleccion
+  if KaraokeCurrentId <> '' then
+  begin
+    if ScreenSing.SungToEnd then
+      KaraokeWriteResult(KaraokeCurrentId, 'ok')
+    else
+      KaraokeWriteResult(KaraokeCurrentId, 'partial');
+    KaraokeCurrentId := '';
+    KaraokeScoreAutoReturn := true;
+    KaraokeScoreShownTime := SDL_GetTicks;
+  end;
+
 end;
 
 procedure TScreenScore.ResetScores;
@@ -1364,6 +1377,13 @@ begin
   begin
     AudioPlayback.Stop;
     PreviewEnd := 0;
+  end;
+
+  if KaraokeScoreAutoReturn and FinishScreenDraw and
+     ((SDL_GetTicks - KaraokeScoreShownTime) >= KARAOKE_SCORE_SHOW_MS) then
+  begin
+    KaraokeScoreAutoReturn := false;
+    FadeTo(@ScreenSong);
   end;
 
 {
