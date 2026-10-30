@@ -35,8 +35,13 @@ jobs:
             mingw-w64-x86_64-tools
       - name: Install Dependencies
         run: |
-          curl.exe -L --max-time 60 -o fpc-installer.exe "https://sourceforge.net/projects/freepascal/files/Win32/3.2.2/fpc-3.2.2.win32.and.win64.exe/download"
-          curl.exe -L --max-time 60 -o nsis-3.05-setup.exe "https://sourceforge.net/projects/nsis/files/NSIS%203/3.05/nsis-3.05-setup.exe/download"
+          curl.exe -L --retry 5 --retry-all-errors --max-time 900 -o fpc-installer.exe "https://downloads.freepascal.org/fpc/dist/3.2.2/i386-win32/fpc-3.2.2.win32.and.win64.exe"
+          if (-not (Test-Path fpc-installer.exe) -or (Get-Item fpc-installer.exe).Length -lt 80000000) {
+            curl.exe -L --retry 5 --retry-all-errors --max-time 900 -o fpc-installer.exe "https://sourceforge.net/projects/freepascal/files/Win32/3.2.2/fpc-3.2.2.win32.and.win64.exe/download"
+          }
+          if ((Get-Item fpc-installer.exe).Length -lt 80000000) { throw "fpc-installer.exe incompleto" }
+          curl.exe -L --retry 5 --retry-all-errors --max-time 600 -o nsis-3.05-setup.exe "https://sourceforge.net/projects/nsis/files/NSIS%203/3.05/nsis-3.05-setup.exe/download"
+          if ((Get-Item nsis-3.05-setup.exe).Length -lt 1000000) { throw "nsis-3.05-setup.exe incompleto" }
           Start-Process -FilePath ".\\fpc-installer.exe" -ArgumentList "/TYPE=full /VERYSILENT /SP- /SUPPRESSMSGBOXES /NORESTART" -Wait
           ./nsis-3.05-setup.exe /S
       - name: Download prebuilt DLLs
