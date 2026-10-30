@@ -323,6 +323,7 @@ type
 
         procedure ResetRandomSongState;
       procedure ResetScrollList;
+      procedure KaraokeUpdate;
   end;
 
 implementation
@@ -330,9 +331,12 @@ implementation
 uses
   UAudioPlaybackBase,
   UGraphic,
+  UKaraokeQueue,
   UHelp,
   ULog,
   UMain,
+  UScreenScore,
+  UScreenSingController,
   UMenuButton,
   UMenuStatic,
   UNote,
@@ -2882,6 +2886,92 @@ begin
 
 end;
 
+procedure TScreenSong.KaraokeUpdate;
+var
+  Req: TKaraokeRequest;
+  Idx: integer;
+  I:   integer;
+begin
+  if (Mode <> smNormal) then
+    Exit;
+
+  // solo con la pantalla completamente mostrada (ni entrando ni saliendo)
+  if (not ShowFinish) or Assigned(Display.NextScreen) then
+    Exit;
+
+  // cuenta regresiva antes de arrancar
+  if KaraokePendingSong >= 0 then
+  begin
+    if (SDL_GetTicks - KaraokePendingTime) >= KARAOKE_START_DELAY_MS then
+    begin
+      Idx := KaraokePendingSong;
+      KaraokePendingSong := -1;
+      if (Idx <= High(CatSongs.Song)) and not CatSongs.Song[Idx].Main then
+      begin
+        CloseMessage();
+        StopVideoPreview;
+        StopMusicPreview;
+        Interaction := Idx;
+        // USDX recien crea estas pantallas al pasar por la de nombres;
+        // en modo karaoke podemos llegar aca sin haber pasado por ahi
+        if not Assigned(ScreenScore) then
+          ScreenScore := TScreenScore.Create;
+        if not Assigned(ScreenSing) then
+          ScreenSing := TScreenSingController.Create;
+        // la pantalla de canto copia los nombres solo al crearse: actualizarlos
+        for I := 1 to PlayersPlay do
+        begin
+          ScreenSing.PlayerNames[I] := Player[I-1].Name;
+          ScreenSing.PlayerDuetNames[I] := Player[I-1].Name;
+        end;
+        KaraokeCurrentId := KaraokePendingId;
+        KaraokePendingId := '';
+        StartSong;
+      end;
+    end;
+    Exit;
+  end;
+
+  if not KaraokePollRequest(Req) then
+    Exit;
+
+  Idx := KaraokeFindSong(Req);
+  if Idx < 0 then
+  begin
+    WriteMessage('Karaoke: no encontre ' + Req.Artist + ' - ' + Req.Title);
+    KaraokeWriteResult(Req.Id, 'notfound');
+    Exit;
+  end;
+
+  KaraokeApplyPlayers(Req, CatSongs.Song[Idx].isDuet);
+
+  // asegurar que el tema este visible y seleccionarlo
+  if not CatSongs.Song[Idx].Visible then
+  begin
+    CatSongs.Song[Idx].Visible := true;
+    CatSongs.ResetVisibleIndexCache;
+  end;
+  case TSongMenuMode(Ini.SongMenu) of
+    smRoulette, smChessboard, smList:
+      SkipTo(CatSongs.VisibleIndex(Idx), Idx, CatSongs.VisibleSongs);
+  else
+    begin
+      Interaction := Idx;
+      FixSelected;
+    end;
+  end;
+  SetScrollRefresh;
+
+  if Length(Req.Names) > 0 then
+    WriteMessage('Ahora canta: ' + Req.Names[0])
+  else
+    WriteMessage('Proximo tema');
+
+  KaraokePendingSong := Idx;
+  KaraokePendingTime := SDL_GetTicks;
+  KaraokePendingId := Req.Id;
+end;
+
 procedure TScreenSong.OnShow;
 var
   I: integer;
@@ -2889,6 +2979,20 @@ begin
   inherited;
 
   CloseMessage();
+
+  // karaoke: si volvemos sin pasar por el puntaje, avisar que se corto
+  KaraokeScoreAutoReturn := false;
+  if KaraokeCurrentId <> '' then
+  begin
+    KaraokeWriteResult(KaraokeCurrentId, 'aborted');
+    KaraokeCurrentId := '';
+  end;
+  if KaraokePendingSong >= 0 then
+  begin
+    KaraokeWriteResult(KaraokePendingId, 'aborted');
+    KaraokePendingSong := -1;
+    KaraokePendingId := '';
+  end;
 
   if (TSongMenuMode(Ini.SongMenu) in [smChessboard, smList]) then
   begin
@@ -3103,6 +3207,13 @@ end;
 
 procedure TScreenSong.OnHide;
 begin
+  // karaoke: si nos vamos en plena cuenta regresiva, ese pedido se cancela
+  if KaraokePendingSong >= 0 then
+  begin
+    KaraokeWriteResult(KaraokePendingId, 'aborted');
+    KaraokePendingSong := -1;
+    KaraokePendingId := '';
+  end;
 
   // turn music volume to 100%
   AudioPlayback.SetVolume(1.0);
@@ -3142,6 +3253,8 @@ var
 begin
 
   FadeMessage();
+
+  KaraokeUpdate;
 
   if (PreviewEnd > 0) and (AudioPlayback.Position >= PreviewEnd) then
     StopMusicPreview;

@@ -74,6 +74,7 @@ uses
   UGraphic,
   UHelp,
   UIni,
+  UKaraokeQueue,
   ULanguage,
   ULog,
   UNote,
@@ -330,6 +331,18 @@ begin
       WantSoftwareRenderingMsg := false;
       ScreenPopupError.ShowPopup(Language.Translate('ERROR_SOFTWARE_RENDERING'));
     end;
+  end;
+
+  // karaoke: alguien se anoto -> ir solos a la seleccion de temas
+  if (not ScreenPopupError.Visible) and (not ScreenPopupCheck.Visible) and
+     (Songs.SongList.Count >= 1) and KaraokeHasPending then
+  begin
+    Party.bPartyGame := false;
+    if (Ini.Players >= 0) and (Ini.Players <= 3) then
+      PlayersPlay := Ini.Players + 1;
+    if (Ini.Players = 4) then
+      PlayersPlay := 6;
+    FadeTo(@ScreenSong);
   end;
 end;
 

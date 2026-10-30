@@ -126,6 +126,7 @@ uses
   UCommon,
   UGraphic,
   UHelp,
+  UKaraokeQueue,
   ULanguage,
   ULog,
   UMain,
@@ -1057,8 +1058,13 @@ function TScreenName.Draw: boolean;
 var
   dx: real;
   dt: real;
+  KaraokeJump: boolean;
   I: integer;
 begin
+  // karaoke: alguien se anoto -> confirmar jugadores y seguir a la seleccion
+  KaraokeJump := (not GoTo_SingScreen) and KaraokeHasPending;
+  if KaraokeJump then
+    ParseInput(SDLK_RETURN, 0, true);
   //inherited Draw;
   //heres a little Hack, that causes the Statics
   //are Drawn after the Buttons because of some Blending Problems.

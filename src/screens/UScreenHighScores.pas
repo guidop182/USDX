@@ -98,6 +98,7 @@ uses
   UDataBase,
   UGraphic,
   UHelp,
+  UKaraokeQueue,
   ULog,
   UMain,
   UIni,
@@ -465,6 +466,10 @@ end;
 function TScreenHighScores.Draw: boolean;
 begin
   Result := inherited Draw;
+
+  // karaoke: alguien se anoto -> volver a la seleccion de temas
+  if KaraokeHasPending then
+    FadeTo(@ScreenSong);
 end;
 
 end.
