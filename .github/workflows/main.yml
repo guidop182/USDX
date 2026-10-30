@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - karaoke
   pull_request:
   # Run every day at 5:40.
   schedule:
