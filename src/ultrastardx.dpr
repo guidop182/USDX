@@ -213,6 +213,7 @@ uses
   USingScores       in 'base\USingScores.pas',
   USingNotes        in 'base\USingNotes.pas',
   UPathUtils        in 'base\UPathUtils.pas',
+  UKaraokeQueue     in 'base\UKaraokeQueue.pas',
   UNote             in 'base\UNote.pas',
   UBeatTimer        in 'base\UBeatTimer.pas',
 
