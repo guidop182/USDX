@@ -63,7 +63,7 @@ function  KaraokeActive: boolean;
 function  KaraokeHasPending: boolean;
 function  KaraokePollRequest(out Req: TKaraokeRequest): boolean;
 function  KaraokeFindSong(const Req: TKaraokeRequest): integer;
-procedure KaraokeApplyPlayers(const Req: TKaraokeRequest; IsDuet: boolean);
+procedure KaraokeApplyPlayers(const Req: TKaraokeRequest);
 procedure KaraokeWriteResult(const Id: UTF8String; const Status: UTF8String);
 
 implementation
@@ -278,15 +278,15 @@ begin
   end;
 end;
 
-procedure KaraokeApplyPlayers(const Req: TKaraokeRequest; IsDuet: boolean);
+procedure KaraokeApplyPlayers(const Req: TKaraokeRequest);
 var
   N, I, CountIndex: integer;
   Nm:  UTF8String;
   Col: TRGB;
 begin
+  // un jugador por nombre recibido; los duos con un solo jugador los maneja USDX
   N := Length(Req.Names);
   if N < 1 then N := 1;
-  if IsDuet and (N < 2) then N := 2;
 
   // cantidad valida de jugadores (1, 2, 3, 4, 6)
   CountIndex := High(IPlayersVals);
@@ -305,8 +305,6 @@ begin
   begin
     if (I < Length(Req.Names)) and (Req.Names[I] <> '') then
       Nm := Req.Names[I]
-    else if (I = 1) and IsDuet and (Length(Req.Names) > 0) and (Req.Names[0] <> '') then
-      Nm := Req.Names[0] + ' (duo)'
     else
       Nm := 'Jugador ' + IntToStr(I + 1);
 
