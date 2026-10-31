@@ -2943,7 +2943,7 @@ begin
     Exit;
   end;
 
-  KaraokeApplyPlayers(Req, CatSongs.Song[Idx].isDuet);
+  KaraokeApplyPlayers(Req);
 
   // asegurar que el tema este visible y seleccionarlo
   if not CatSongs.Song[Idx].Visible then
